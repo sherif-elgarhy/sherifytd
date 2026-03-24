@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center mt-3">
+    <div class="col-md-8">
+        <div class="card shadow border-0">
+            <div class="card-header bg-dark d-flex justify-content-between">
+                <span id="status-text">
+                    <i class="fa-solid fa-sync fa-spin me-2 text-primary"></i>
+                    Processing...
+                </span>
+                <span class="badge bg-primary" id="status-badge">LIVE</span>
+            </div>
+
+            <div class="card-body bg-black p-0">
+                <pre id="log" class="m-0 p-3"
+                     style="height: 400px; overflow-y: auto; color: #33ff33; font-size: 0.8rem;"></pre>
+            </div>
+
+            <div class="card-footer bg-dark border-0">
+                <div id="action-area" class="d-none row g-2">
+                    <div class="col-6">
+                        <a id="open-btn" href="/open-file" target="_blank" class="btn btn-success w-100">
+                            <i class="fa-solid fa-file-video me-1"></i> Open
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <button onclick="window.location.href='/'" class="btn btn-light w-100">
+                            <i class="fa-solid fa-plus me-1"></i> New
+                        </button>
+                    </div>
+                    <div class="col-12">
+                        <button onclick="shutdown()" class="btn btn-outline-danger w-100 btn-sm mt-2">
+                            <i class="fa-solid fa-power-off me-1"></i> Stop Server
+                        </button>
+                    </div>
+                </div>
+                <div id="error-area" class="d-none">
+                    <div class="alert alert-danger mb-2">
+                        ❌ Download failed. Check the log above for details.
+                    </div>
+                    <button onclick="window.location.href='/'" class="btn btn-light w-100">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Back
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Safe param passing — values JSON-encoded into data attributes, never raw in <script> #}
+<div id="dl-params" class="d-none"
+     data-url="{{ url | e }}"
+     data-fmt="{{ fmt | e }}"
+     data-playlist="{{ 1 if playlist else 0 }}">
+</div>
+
+<script src="{{ url_for('static', filename='js/progress.js') }}"></script>
+{% endblock %}

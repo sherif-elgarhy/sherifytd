@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center mt-2">
+    <div class="col-md-6 col-lg-5">
+        <div class="card p-4 shadow-sm border-0">
+            <form action="/start" method="post" id="dl-form">
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label fw-bold m-0">
+                            <i class="fa-solid fa-link text-primary me-1"></i> Media Link
+                        </label>
+                        <button type="button" class="btn btn-sm btn-outline-primary border-0" onclick="pasteUrl()">
+                            <i class="fa-solid fa-paste me-1"></i> Paste
+                        </button>
+                    </div>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white">
+                            <i id="url-icon" class="fa-solid fa-globe text-muted"></i>
+                        </span>
+                        <input type="url" name="url" id="url-input" class="form-control"
+                               placeholder="YouTube, Instagram, TikTok..."
+                               value="{{ auto_url | e }}"
+                               required autofocus>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        <i class="fa-solid fa-sliders text-primary me-1"></i> Quality
+                    </label>
+                    <select name="format" id="format-select" class="form-select">
+                        <option value="best">✨ Best Available</option>
+                        <option value="best[height<=1080]">🎬 Full HD (1080p)</option>
+                        <option value="best[height<=720]">📽️ HD (720p)</option>
+                        <option value="best[height<=480]">📹 SD (480p)</option>
+                        <option value="bestaudio[ext=m4a]">🎼 M4A Audio</option>
+                        <option value="mp3">🎵 MP3 Audio</option>
+                    </select>
+                    <div id="quality-hint" class="form-text text-danger d-none small">
+                        <i class="fa-solid fa-circle-info me-1"></i> Quality options are YouTube-only
+                    </div>
+                </div>
+
+                <div class="form-check form-switch mb-4">
+                    <input class="form-check-input" type="checkbox" name="playlist" id="pl">
+                    <label class="form-check-label fw-medium" for="pl">
+                        <i class="fa-solid fa-list-check me-1"></i> Download Playlist
+                    </label>
+                </div>
+
+                <button type="submit" id="submit-btn" class="btn btn-primary w-100 py-3 fw-bold shadow-sm">
+                    <span id="btn-text">
+                        <i class="fa-solid fa-cloud-arrow-down me-2"></i>START DOWNLOAD
+                    </span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/index.js') }}"></script>
+{% endblock %}
+

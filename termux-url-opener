@@ -1,0 +1,92 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# SherifYTD — Entry point
+# Called by Android share menu with a URL, or directly by the user
+
+URL="$1"
+SCRIPT_DIR="$HOME/sherifytd"
+WEB_DIR="$HOME/sherifytd/web"
+
+# ──────[ HELPERS ]──────
+
+launch_web() {
+  local url="$1"
+  if [[ ! -f "$WEB_DIR/app.py" ]]; then
+    echo -e "❌ Web UI not found at: $WEB_DIR"
+    echo -e "💡 Clone the repo first: git clone https://github.com/sherif-elgarhy/sherifytd ~/sherifytd"
+    exit 1
+  fi
+  pkill -f "python app.py" 2>/dev/null
+  cd "$WEB_DIR" || exit 1
+  python app.py "$url"
+}
+
+launch_bash() {
+  local url="$1"
+  bash "$SCRIPT_DIR/ytd.sh" "$url" "${@:2}"
+}
+
+# ──────[ SHARED URL (called from Android share menu) ]──────
+
+if [[ -n "$URL" ]]; then
+  echo ""
+  echo -e "🔗 URL: $URL"
+  echo -e "📥 How do you want to download?"
+  echo ""
+  echo "  1) ⚡ Bash   — fast, runs right here in terminal"
+  echo "  2) 🌐 Web UI — opens in your browser"
+  echo ""
+  read -rp "👉 Choose [1/2]: " choice
+
+  case "$choice" in
+    1) launch_bash "$URL" ;;
+    2) launch_web  "$URL" ;;
+    *) echo -e "❌ Cancelled." ; exit 1 ;;
+  esac
+  exit 0
+fi
+
+# ──────[ NO URL (called directly) ]──────
+
+while true; do
+  echo ""
+  echo -e "📥 SherifYTD"
+  echo "──────────────────────────"
+  echo "  1) ⚡ Download (Bash)"
+  echo "  2) 🌐 Launch Web UI"
+  echo "  3) 📋 Batch download from file"
+  echo "  4) 🔄 Update yt-dlp"
+  echo "  5) 🛠️  Run setup"
+  echo "  Q) Exit"
+  echo ""
+  read -rp "👉 Choose: " opt
+
+  case "$opt" in
+    1)
+      read -rp "🔗 Enter URL: " manual_url
+      [[ -z "$manual_url" ]] && echo "❌ No URL entered." && continue
+      launch_bash "$manual_url"
+      ;;
+    2)
+      launch_web ""
+      ;;
+    3)
+      read -rp "📄 Path to URL file: " url_file
+      [[ ! -f "$url_file" ]] && echo "❌ File not found." && continue
+      launch_bash --input "$url_file" --non-interactive
+      ;;
+    4)
+      echo "🔄 Updating yt-dlp..."
+      pip install --upgrade yt-dlp
+      ;;
+    5)
+      bash "$SCRIPT_DIR/ytd.sh"
+      ;;
+    Q|q)
+      echo -e "👋 Bye!"
+      exit 0
+      ;;
+    *)
+      echo "❌ Invalid choice."
+      ;;
+  esac
+done
