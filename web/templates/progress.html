@@ -51,7 +51,10 @@
 <div id="dl-params" class="d-none"
      data-url="{{ url | e }}"
      data-fmt="{{ fmt | e }}"
-     data-playlist="{{ 1 if playlist else 0 }}">
+     data-playlist="{{ 1 if playlist else 0 }}"
+     data-subs="{{ 1 if subs else 0 }}"
+     data-sb="{{ 1 if sb else 0 }}"
+     data-archive="{{ 1 if archive else 0 }}">
 </div>
 
 <script src="{{ url_for('static', filename='js/progress.js') }}"></script>

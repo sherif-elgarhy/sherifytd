@@ -9,20 +9,36 @@ BASE_DIR = _os.path.expanduser(
     "~/storage/shared/YTD" if _termux else "~/Downloads/YTD"
 )
 
-# Platforms that support playlists
-PLAYLIST_DOMAINS = ["youtube.com", "youtu.be", "soundcloud.com", "vimeo.com"]
+PLATFORM_DOMAINS = {
+    "youtube.com":     "YouTube",
+    "youtu.be":        "YouTube",
+    "soundcloud.com":  "SoundCloud",
+    "vimeo.com":       "Vimeo",
+    "instagram.com":   "Instagram",
+    "tiktok.com":      "TikTok",
+    "facebook.com":    "Facebook",
+    "x.com":           "X",
+    "twitter.com":     "X",
+    "twitch.tv":       "Twitch",
+    "dailymotion.com": "Dailymotion",
+    "reddit.com":      "Reddit",
+    "rumble.com":      "Rumble",
+    "bilibili.com":    "Bilibili",
+    "ted.com":         "TED",
+    "streamable.com":  "Streamable",
+    "linkedin.com":    "LinkedIn",
+    "pinterest.com":   "Pinterest",
+}
+
+PLAYLIST_DOMAINS = {"youtube.com", "youtu.be", "soundcloud.com", "vimeo.com"}
 
 # Short-form content patterns
 SHORTS_PATTERN = re.compile(r'shorts|/reel|share/r|tiktok\.com', re.IGNORECASE)
 
 def detect_platform(url):
-    if any(d in url for d in ["youtube.com", "youtu.be"]): return "YouTube"
-    if "soundcloud.com" in url: return "SoundCloud"
-    if "instagram.com" in url: return "Instagram"
-    if "tiktok.com" in url: return "TikTok"
-    if "facebook.com" in url: return "Facebook"
-    if "x.com" in url: return "X"
-    if "vimeo.com" in url: return "Vimeo"
+    for domain, name in PLATFORM_DOMAINS.items():
+        if domain in url:
+            return name
     return "Other"
 
 def supports_playlist(url):
@@ -64,17 +80,19 @@ def get_smart_path(url, is_playlist):
     return target_dir
 
 
-def build_command(url, fmt, playlist, save_path):
+def build_command(url, fmt, playlist, save_path, subs=False, sponsorblock=False, archive=False):
     cmd = [
         "yt-dlp",
-        "--newline",       # one line per progress update
-        "--progress",      # force progress output even when not a TTY
-        "--no-quiet",      # ensure output is not suppressed
+        "--newline",
+        "--progress",
+        "--no-quiet",
         "--restrict-filenames",
         "--no-part",
         "--no-continue",
         "--no-cache-dir",
         "--trim-filenames", "100",
+        "--embed-metadata",
+        "--embed-thumbnail",
         "--print", "after_move:filepath",
         "-o", f"{save_path}/%(title)s.%(ext)s",
     ]
@@ -85,16 +103,25 @@ def build_command(url, fmt, playlist, save_path):
     if fmt == "mp3":
         cmd += ["-x", "--audio-format", "mp3"]
     else:
-        # Slash fallback: try requested format, fall back to best
-        cmd += ["-f", f"{fmt}/best"]
+        cmd += ["-f", fmt]
+
+    if subs:
+        cmd += ["--write-subs", "--write-auto-subs", "--sub-langs", "en,ar", "--embed-subs"]
+
+    if sponsorblock:
+        cmd += ["--sponsorblock-remove", "sponsor,selfpromo,interaction"]
+
+    if archive:
+        archive_file = os.path.expanduser("~/.sherifytd-archive.txt")
+        cmd += ["--download-archive", archive_file]
 
     cmd.append(url)
     return cmd
 
 
-def download_stream(url, fmt="best", playlist=False):
+def download_stream(url, fmt="bv*+ba/b", playlist=False, subs=False, sponsorblock=False, archive=False):
     save_path = get_smart_path(url, playlist)
-    cmd = build_command(url, fmt, playlist, save_path)
+    cmd = build_command(url, fmt, playlist, save_path, subs=subs, sponsorblock=sponsorblock, archive=archive)
 
     return subprocess.Popen(
         cmd,

@@ -30,22 +30,37 @@
                         <i class="fa-solid fa-sliders text-primary me-1"></i> Quality
                     </label>
                     <select name="format" id="format-select" class="form-select">
-                        <option value="best">✨ Best Available</option>
-                        <option value="best[height<=1080]">🎬 Full HD (1080p)</option>
-                        <option value="best[height<=720]">📽️ HD (720p)</option>
-                        <option value="best[height<=480]">📹 SD (480p)</option>
-                        <option value="bestaudio[ext=m4a]">🎼 M4A Audio</option>
+                        <option value="bv*+ba/b">✨ Best Available</option>
+                        <option value="bv*[height<=1080]+ba/b">🎬 Full HD (1080p)</option>
+                        <option value="bv*[height<=720]+ba/b">📽️ HD (720p)</option>
+                        <option value="bv*[height<=480]+ba/b">📹 SD (480p)</option>
+                        <option value="bestaudio[ext=m4a]/bestaudio">🎼 M4A Audio</option>
                         <option value="mp3">🎵 MP3 Audio</option>
                     </select>
-                    <div id="quality-hint" class="form-text text-danger d-none small">
-                        <i class="fa-solid fa-circle-info me-1"></i> Quality options are YouTube-only
-                    </div>
                 </div>
 
-                <div class="form-check form-switch mb-4">
+                <div class="form-check form-switch mb-2">
                     <input class="form-check-input" type="checkbox" name="playlist" id="pl">
                     <label class="form-check-label fw-medium" for="pl">
                         <i class="fa-solid fa-list-check me-1"></i> Download Playlist
+                    </label>
+                </div>
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" name="subs" id="subs">
+                    <label class="form-check-label fw-medium" for="subs">
+                        <i class="fa-solid fa-closed-captioning me-1"></i> Subtitles (en, ar)
+                    </label>
+                </div>
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" name="sponsorblock" id="sb">
+                    <label class="form-check-label fw-medium" for="sb">
+                        <i class="fa-solid fa-shield-halved me-1"></i> Skip Sponsors
+                    </label>
+                </div>
+                <div class="form-check form-switch mb-4">
+                    <input class="form-check-input" type="checkbox" name="archive" id="archive">
+                    <label class="form-check-label fw-medium" for="archive">
+                        <i class="fa-solid fa-box-archive me-1"></i> Skip Already Downloaded
                     </label>
                 </div>
 

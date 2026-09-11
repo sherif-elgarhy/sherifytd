@@ -6,11 +6,15 @@ const statusText = document.getElementById("status-text");
 
 // Read params safely from DOM data attributes
 const dlParams   = document.getElementById("dl-params").dataset;
-const dlUrl      = dlParams.url;
-const dlFmt      = dlParams.fmt;
-const dlPlaylist = dlParams.playlist;
 
-const params = new URLSearchParams({ url: dlUrl, fmt: dlFmt, playlist: dlPlaylist });
+const params = new URLSearchParams({
+    url:      dlParams.url,
+    fmt:      dlParams.fmt,
+    playlist: dlParams.playlist,
+    subs:     dlParams.subs,
+    sb:       dlParams.sb,
+    archive:  dlParams.archive,
+});
 const evt = new EventSource("/stream?" + params.toString());
 
 evt.onmessage = (e) => {

@@ -8,27 +8,56 @@ non_interactive=false
 is_playlist=false
 playlist_mode=false
 
-format_flag="-f b"
+format_flag="-f bv*+ba/b"
 format_prompt=true
 playlist_flag="--no-playlist"
 save_dir="$HOME/Downloads/YTD"
 
+# Feature toggles
+enable_subs=false
+sub_langs="${SHERIFYTD_SUB_LANGS:-en,ar}"
+cookies_file=""
+cookies_browser=""
+enable_archive=false
+archive_file="${SHERIFYTD_ARCHIVE:-$HOME/.sherifytd-archive.txt}"
+enable_sponsorblock=false
+
 # 🧩 Platforms where format prompt is skipped (simpler media or fixed format)
 skip_format_domains=("facebook.com" "instagram.com" "soundcloud.com" "tiktok.com")
-# 🧩 Supported domains whitelist (extend as needed)
-supported_domains=(
-  "youtube.com"
-  "youtu.be"
-  "vimeo.com"
-  "tiktok.com"
-  "instagram.com"
-  "facebook.com"
-  "x.com"
-  "soundcloud.com"
+
+# 🧩 Platform map: domain → folder name (add new platforms here)
+declare -A PLATFORM_MAP=(
+  ["youtube.com"]="YouTube"
+  ["youtu.be"]="YouTube"
+  ["vimeo.com"]="Vimeo"
+  ["tiktok.com"]="TikTok"
+  ["instagram.com"]="Instagram"
+  ["facebook.com"]="Facebook"
+  ["x.com"]="X"
+  ["twitter.com"]="X"
+  ["soundcloud.com"]="SoundCloud"
+  ["twitch.tv"]="Twitch"
+  ["dailymotion.com"]="Dailymotion"
+  ["reddit.com"]="Reddit"
+  ["rumble.com"]="Rumble"
+  ["bilibili.com"]="Bilibili"
+  ["ted.com"]="TED"
+  ["streamable.com"]="Streamable"
+  ["linkedin.com"]="LinkedIn"
+  ["pinterest.com"]="Pinterest"
 )
 
-# 🧩 Build a single regex pattern for matching
-domain_pattern=$(IFS="|"; echo "${supported_domains[*]}")
+# 🧩 Build domain pattern from PLATFORM_MAP keys
+domain_pattern=$(IFS="|"; keys=("${!PLATFORM_MAP[@]}"); echo "${keys[*]}")
+domain_pattern="${domain_pattern//./\\.}"
+
+get_platform_dir() {
+  local url="$1"
+  for domain in "${!PLATFORM_MAP[@]}"; do
+    [[ "$url" == *"$domain"* ]] && echo "${PLATFORM_MAP[$domain]}" && return
+  done
+  echo "Other"
+}
 
 # ──────[ PLATFORM DETECTION ]──────
 
@@ -157,16 +186,62 @@ while [[ $# -gt 0 ]]; do
       playlist_mode=true
       shift
       ;;
+    -s|--subs)
+      enable_subs=true
+      # Optional lang list as next arg if it doesn't start with -
+      if [[ -n "$2" && "$2" != -* ]]; then
+        sub_langs="$2"
+        shift 2
+      else
+        shift
+      fi
+      ;;
+    -c|--cookies)
+      cookies_file="$2"
+      shift 2
+      ;;
+    -b|--cookies-browser)
+      cookies_browser="$2"
+      shift 2
+      ;;
+    -a|--archive)
+      enable_archive=true
+      if [[ -n "$2" && "$2" != -* && "$2" != http* ]]; then
+        archive_file="$2"
+        shift 2
+      else
+        shift
+      fi
+      ;;
+    --sponsorblock)
+      enable_sponsorblock=true
+      shift
+      ;;
     -h|--help)
-      echo "📘 Usage:"
-      echo "  termux-url-opener [URL] [options]"
-      echo "  Options:"
-      echo "   -f, --format <fmt>       Specify yt-dlp format (e.g. 'best', 'bestaudio[ext=m4a]')"
-      echo "   -d, --dir <path>         Set custom save directory"
-      echo "   -i, --input <file>       Read URLs from a file (one per line)"
-      echo "   -n, --non-interactive    Skip prompts (batch mode)"
-      echo "   -p, --playlist           Allow full playlist download"
-      echo "   -h, --help               Show this help"
+      cat <<'EOF'
+📘 Usage:
+  termux-url-opener [URL] [options]
+  ytd.sh [URL...] [options]
+
+  Options:
+   -f, --format <fmt>          yt-dlp format (e.g. 'best', 'bestaudio[ext=m4a]')
+   -d, --dir <path>            Custom save directory
+   -i, --input <file>          Read URLs from a file (one per line)
+   -n, --non-interactive       Skip prompts (batch mode)
+   -p, --playlist              Allow full playlist download
+
+   -s, --subs [langs]          Download + embed subtitles (default: en,ar)
+   -c, --cookies <file>        Cookies file (Netscape format)
+   -b, --cookies-browser <b>   Read cookies from browser (chrome, firefox, ...)
+   -a, --archive [file]        Skip already-downloaded (default: ~/.sherifytd-archive.txt)
+       --sponsorblock          Remove sponsor/self-promo segments (YouTube)
+
+   -h, --help                  Show this help
+
+  Env:
+   SHERIFYTD_SUB_LANGS   Override default subtitle languages
+   SHERIFYTD_ARCHIVE     Override default archive file path
+EOF
       exit 0
       ;;
     *)
@@ -195,12 +270,10 @@ save_dir="$default_dir"
 # 🧭 Handle custom directory if provided
 if [ -n "$user_dir" ]; then
   echo "📁 Using custom directory: $user_dir"
-  mkdir -p "$user_dir" 2>/dev/null
-
-  if [ -d "$user_dir" ] && [ -w "$user_dir" ]; then
+  if mkdir -p "$user_dir" && touch "$user_dir/.ytd_write_test" 2>/dev/null && rm -f "$user_dir/.ytd_write_test"; then
     save_dir="$user_dir"
   else
-    echo "⚠️  Cannot access or write to $user_dir — falling back to default: $default_dir"
+    echo "⚠️  Cannot create or write to $user_dir — falling back to default: $default_dir"
   fi
 else
   echo "📁 Using default directory: $save_dir"
@@ -216,8 +289,12 @@ if [ ! -d "$save_dir" ] || [ ! -w "$save_dir" ]; then
 fi
 
 # If input file provided, read URLs from it
-if [[ -n "$input_file" && -f "$input_file" ]]; then
-  mapfile -t file_urls < "$input_file"
+if [[ -n "$input_file" ]]; then
+  if [[ ! -f "$input_file" ]]; then
+    echo "❌ Input file not found: $input_file"
+    exit 1
+  fi
+  mapfile -t file_urls < <(grep -v '^\s*#' "$input_file" | grep -v '^\s*$')
   urls+=("${file_urls[@]}")
 fi
 
@@ -250,8 +327,9 @@ for url in "${urls[@]}"; do
   echo "🔗 Processing: $url"
   # 🔄 Reset per-loop defaults
   playlist_flag="--no-playlist"
-  format_flag="-f b"
+  format_flag="-f bv*+ba/b"
   format_prompt=true
+  is_playlist=false
   output_dir="$save_dir"
 
   # Check URL validity
@@ -269,24 +347,7 @@ for url in "${urls[@]}"; do
     # optional skip url or continue
   fi
 
-  # ⚡ Initialize variables for platform-specific paths
-  platform_dir="Other"
-  # Use a basic regex to set a generic platform name
-  if [[ "$url" =~ (youtu\.be|youtube\.com) ]]; then
-    platform_dir="YouTube"
-  elif [[ "$url" =~ soundcloud\.com ]]; then
-    platform_dir="SoundCloud"
-  elif [[ "$url" =~ vimeo\.com ]]; then
-    platform_dir="Vimeo"
-  elif [[ "$url" =~ tiktok\.com ]]; then
-    platform_dir="TikTok"
-  elif [[ "$url" =~ facebook\.com ]]; then
-    platform_dir="Facebook"
-  elif [[ "$url" =~ instagram\.com ]]; then
-    platform_dir="Instagram"
-  elif [[ "$url" =~ x\.com ]]; then
-    platform_dir="X"
-  fi
+  platform_dir=$(get_platform_dir "$url")
 
   # ⚡ Construct the save directory
   output_dir="$save_dir/$platform_dir"
@@ -397,14 +458,14 @@ for url in "${urls[@]}"; do
         continue ;
       fi
       case $format_choice in
-        1) fmt='bestaudio[ext=m4a]' ;;
+        1) fmt='bestaudio[ext=m4a]/bestaudio' ;;
         2) fmt="mp3" ;; # Special case for MP3
-        3) fmt='best[height<=360]' ;;
-        4) fmt='best[height<=480]' ;;
-        5) fmt='best[height<=720]' ;;
-        6) fmt='best[height<=1080]' ;;
-        7) fmt='best[height<=2160]' ;;
-        *) fmt='b' ;;
+        3) fmt='bv*[height<=360]+ba/b[height<=360]/b' ;;
+        4) fmt='bv*[height<=480]+ba/b[height<=480]/b' ;;
+        5) fmt='bv*[height<=720]+ba/b[height<=720]/b' ;;
+        6) fmt='bv*[height<=1080]+ba/b[height<=1080]/b' ;;
+        7) fmt='bv*[height<=2160]+ba/b[height<=2160]/b' ;;
+        *) fmt='bv*+ba/b' ;;
       esac
 
       format_flag="-f $fmt"
@@ -417,9 +478,36 @@ for url in "${urls[@]}"; do
 
   mkdir -p "$output_dir"
   outfile="$output_dir/%(title)s.%(ext)s"
-  final_path=$(yt-dlp $playlist_flag $format_flag \
+
+  # 🧩 Build extra flags for this URL
+  extra_flags=(--embed-metadata --embed-thumbnail)
+
+  if [[ "$enable_subs" == true ]]; then
+    extra_flags+=(--write-subs --write-auto-subs --sub-langs "$sub_langs" --embed-subs)
+  fi
+
+  if [[ -n "$cookies_file" ]]; then
+    if [[ -r "$cookies_file" ]]; then
+      extra_flags+=(--cookies "$cookies_file")
+    else
+      echo "⚠️  Cookies file not readable: $cookies_file (skipping)"
+    fi
+  elif [[ -n "$cookies_browser" ]]; then
+    extra_flags+=(--cookies-from-browser "$cookies_browser")
+  fi
+
+  if [[ "$enable_archive" == true ]]; then
+    mkdir -p "$(dirname "$archive_file")" 2>/dev/null
+    extra_flags+=(--download-archive "$archive_file")
+  fi
+
+  if [[ "$enable_sponsorblock" == true ]]; then
+    extra_flags+=(--sponsorblock-remove sponsor,selfpromo,interaction)
+  fi
+
+  final_path=$(yt-dlp $playlist_flag $format_flag "${extra_flags[@]}" \
     --restrict-filenames --no-warnings -q --get-filename -o "$outfile" "$url")
-  yt-dlp $playlist_flag $format_flag \
+  yt-dlp $playlist_flag $format_flag "${extra_flags[@]}" \
     --restrict-filenames --no-part --no-continue --no-cache-dir --trim-filenames 100 -o "$outfile" "$url"
 
   # Capture the exit status (0 means success, non-zero means failure)
@@ -428,7 +516,7 @@ for url in "${urls[@]}"; do
   # 🩹 Fallback: Retry with 'best' if format not found
   if [ "$download_status" -ne 0 ]; then
     echo "⚠️  Requested format not found, retrying with best available..."
-    yt-dlp $playlist_flag -f b \
+    yt-dlp $playlist_flag -f 'bv*+ba/b' "${extra_flags[@]}" \
       --restrict-filenames --no-part --no-continue --no-cache-dir --trim-filenames 100 -o "$outfile" "$url"
     download_status=$?
   fi

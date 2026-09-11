@@ -29,27 +29,40 @@ def index():
 
 @bp.route("/start", methods=["POST"])
 def start():
-    url = request.form["url"]
-    fmt = request.form.get("format", "best")
-    playlist = 1 if request.form.get("playlist") else 0
-    return redirect(url_for("main.progress", url=url, fmt=fmt, playlist=playlist))
+    url      = request.form["url"]
+    fmt      = request.form.get("format", "bv*+ba/b")
+    playlist = 1 if request.form.get("playlist")     else 0
+    subs     = 1 if request.form.get("subs")         else 0
+    sb       = 1 if request.form.get("sponsorblock") else 0
+    archive  = 1 if request.form.get("archive")      else 0
+    return redirect(url_for("main.progress",
+        url=url, fmt=fmt, playlist=playlist,
+        subs=subs, sb=sb, archive=archive))
 
 
 @bp.route("/progress")
 def progress():
-    url = request.args["url"]
-    fmt = request.args["fmt"]
+    url      = request.args["url"]
+    fmt      = request.args["fmt"]
     playlist = bool(int(request.args.get("playlist", 0)))
-    return render_template("progress.html", url=url, fmt=fmt, playlist=playlist)
+    subs     = bool(int(request.args.get("subs",     0)))
+    sb       = bool(int(request.args.get("sb",       0)))
+    archive  = bool(int(request.args.get("archive",  0)))
+    return render_template("progress.html",
+        url=url, fmt=fmt, playlist=playlist,
+        subs=subs, sb=sb, archive=archive)
 
 
 @bp.route("/stream")
 def stream():
-    url = request.args["url"]
-    fmt = request.args["fmt"]
+    url      = request.args["url"]
+    fmt      = request.args["fmt"]
     playlist = bool(int(request.args.get("playlist", 0)))
+    subs     = bool(int(request.args.get("subs",     0)))
+    sb       = bool(int(request.args.get("sb",       0)))
+    archive  = bool(int(request.args.get("archive",  0)))
 
-    proc = download_stream(url, fmt, playlist)
+    proc = download_stream(url, fmt, playlist, subs=subs, sponsorblock=sb, archive=archive)
 
     def generate():
         for line in proc.stdout:
