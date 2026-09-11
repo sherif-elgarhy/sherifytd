@@ -80,7 +80,7 @@ def get_smart_path(url, is_playlist):
     return target_dir
 
 
-def build_command(url, fmt, playlist, save_path, subs=False, sponsorblock=False, archive=False):
+def build_command(url, fmt, playlist, save_path, subs=False, sponsorblock=False, archive=False, sub_langs="en,ar"):
     cmd = [
         "yt-dlp",
         "--newline",
@@ -106,7 +106,7 @@ def build_command(url, fmt, playlist, save_path, subs=False, sponsorblock=False,
         cmd += ["-f", fmt]
 
     if subs:
-        cmd += ["--write-subs", "--write-auto-subs", "--sub-langs", "en,ar", "--embed-subs"]
+        cmd += ["--write-subs", "--write-auto-subs", "--sub-langs", sub_langs, "--embed-subs"]
 
     if sponsorblock:
         cmd += ["--sponsorblock-remove", "sponsor,selfpromo,interaction"]
@@ -119,9 +119,9 @@ def build_command(url, fmt, playlist, save_path, subs=False, sponsorblock=False,
     return cmd
 
 
-def download_stream(url, fmt="bv*+ba/b", playlist=False, subs=False, sponsorblock=False, archive=False):
+def download_stream(url, fmt="bv*+ba/b", playlist=False, subs=False, sponsorblock=False, archive=False, sub_langs="en,ar"):
     save_path = get_smart_path(url, playlist)
-    cmd = build_command(url, fmt, playlist, save_path, subs=subs, sponsorblock=sponsorblock, archive=archive)
+    cmd = build_command(url, fmt, playlist, save_path, subs=subs, sponsorblock=sponsorblock, archive=archive, sub_langs=sub_langs)
 
     return subprocess.Popen(
         cmd,

@@ -1,19 +1,20 @@
 const log        = document.getElementById("log");
 const actions    = document.getElementById("action-area");
+const cancelArea = document.getElementById("cancel-area");
 const errorArea  = document.getElementById("error-area");
 const badge      = document.getElementById("status-badge");
 const statusText = document.getElementById("status-text");
 
-// Read params safely from DOM data attributes
-const dlParams   = document.getElementById("dl-params").dataset;
+const dlParams = document.getElementById("dl-params").dataset;
 
 const params = new URLSearchParams({
-    url:      dlParams.url,
-    fmt:      dlParams.fmt,
-    playlist: dlParams.playlist,
-    subs:     dlParams.subs,
-    sb:       dlParams.sb,
-    archive:  dlParams.archive,
+    url:       dlParams.url,
+    fmt:       dlParams.fmt,
+    playlist:  dlParams.playlist,
+    subs:      dlParams.subs,
+    sb:        dlParams.sb,
+    archive:   dlParams.archive,
+    sub_langs: dlParams.subLangs,
 });
 const evt = new EventSource("/stream?" + params.toString());
 
@@ -38,6 +39,7 @@ evt.onerror = () => {
 };
 
 function finishUI() {
+    cancelArea.classList.add("d-none");
     badge.className = "badge bg-success";
     badge.innerText = "DONE";
     statusText.innerHTML = '<i class="fa-solid fa-check-circle text-success me-2"></i>Finished';
@@ -45,9 +47,20 @@ function finishUI() {
 }
 
 function errorUI() {
+    cancelArea.classList.add("d-none");
     badge.className = "badge bg-danger";
     badge.innerText = "FAILED";
     statusText.innerHTML = '<i class="fa-solid fa-circle-xmark text-danger me-2"></i>Failed';
+    errorArea.classList.remove("d-none");
+}
+
+function cancelDownload() {
+    evt.close();
+    fetch("/cancel", { method: "POST" });
+    cancelArea.classList.add("d-none");
+    badge.className = "badge bg-warning text-dark";
+    badge.innerText = "CANCELLED";
+    statusText.innerHTML = '<i class="fa-solid fa-ban text-warning me-2"></i>Cancelled';
     errorArea.classList.remove("d-none");
 }
 

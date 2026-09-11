@@ -45,11 +45,16 @@
                         <i class="fa-solid fa-list-check me-1"></i> Download Playlist
                     </label>
                 </div>
-                <div class="form-check form-switch mb-2">
-                    <input class="form-check-input" type="checkbox" name="subs" id="subs">
+                <div class="form-check form-switch mb-1">
+                    <input class="form-check-input" type="checkbox" name="subs" id="subs"
+                           onchange="document.getElementById('sub-langs-row').classList.toggle('d-none', !this.checked)">
                     <label class="form-check-label fw-medium" for="subs">
-                        <i class="fa-solid fa-closed-captioning me-1"></i> Subtitles (en, ar)
+                        <i class="fa-solid fa-closed-captioning me-1"></i> Subtitles
                     </label>
+                </div>
+                <div id="sub-langs-row" class="mb-2 ps-4 d-none">
+                    <input type="text" name="sub_langs" class="form-control form-control-sm"
+                           value="en,ar" placeholder="e.g. en,ar,fr">
                 </div>
                 <div class="form-check form-switch mb-2">
                     <input class="form-check-input" type="checkbox" name="sponsorblock" id="sb">

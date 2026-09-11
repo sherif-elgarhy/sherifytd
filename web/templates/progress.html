@@ -17,6 +17,11 @@
             </div>
 
             <div class="card-footer bg-dark border-0">
+                <div id="cancel-area" class="mb-2">
+                    <button onclick="cancelDownload()" class="btn btn-outline-warning w-100 btn-sm">
+                        <i class="fa-solid fa-stop me-1"></i> Cancel
+                    </button>
+                </div>
                 <div id="action-area" class="d-none row g-2">
                     <div class="col-6">
                         <a id="open-btn" href="/open-file" target="_blank" class="btn btn-success w-100">
@@ -54,7 +59,8 @@
      data-playlist="{{ 1 if playlist else 0 }}"
      data-subs="{{ 1 if subs else 0 }}"
      data-sb="{{ 1 if sb else 0 }}"
-     data-archive="{{ 1 if archive else 0 }}">
+     data-archive="{{ 1 if archive else 0 }}"
+     data-sub-langs="{{ sub_langs | e }}">
 </div>
 
 <script src="{{ url_for('static', filename='js/progress.js') }}"></script>

@@ -27,42 +27,57 @@ def index():
     return render_template("index.html", auto_url=auto_url)
 
 
+_proc_lock    = threading.Lock()
+_current_proc = None
+
+
+def set_current_proc(proc):
+    global _current_proc
+    with _proc_lock:
+        _current_proc = proc
+
+
 @bp.route("/start", methods=["POST"])
 def start():
-    url      = request.form["url"]
-    fmt      = request.form.get("format", "bv*+ba/b")
-    playlist = 1 if request.form.get("playlist")     else 0
-    subs     = 1 if request.form.get("subs")         else 0
-    sb       = 1 if request.form.get("sponsorblock") else 0
-    archive  = 1 if request.form.get("archive")      else 0
+    url       = request.form["url"]
+    fmt       = request.form.get("format", "bv*+ba/b")
+    playlist  = 1 if request.form.get("playlist")     else 0
+    subs      = 1 if request.form.get("subs")         else 0
+    sb        = 1 if request.form.get("sponsorblock") else 0
+    archive   = 1 if request.form.get("archive")      else 0
+    sub_langs = request.form.get("sub_langs", "en,ar") if request.form.get("subs") else "en,ar"
     return redirect(url_for("main.progress",
         url=url, fmt=fmt, playlist=playlist,
-        subs=subs, sb=sb, archive=archive))
+        subs=subs, sb=sb, archive=archive, sub_langs=sub_langs))
 
 
 @bp.route("/progress")
 def progress():
-    url      = request.args["url"]
-    fmt      = request.args["fmt"]
-    playlist = bool(int(request.args.get("playlist", 0)))
-    subs     = bool(int(request.args.get("subs",     0)))
-    sb       = bool(int(request.args.get("sb",       0)))
-    archive  = bool(int(request.args.get("archive",  0)))
+    url       = request.args["url"]
+    fmt       = request.args["fmt"]
+    playlist  = bool(int(request.args.get("playlist",  0)))
+    subs      = bool(int(request.args.get("subs",      0)))
+    sb        = bool(int(request.args.get("sb",        0)))
+    archive   = bool(int(request.args.get("archive",   0)))
+    sub_langs = request.args.get("sub_langs", "en,ar")
     return render_template("progress.html",
         url=url, fmt=fmt, playlist=playlist,
-        subs=subs, sb=sb, archive=archive)
+        subs=subs, sb=sb, archive=archive, sub_langs=sub_langs)
 
 
 @bp.route("/stream")
 def stream():
-    url      = request.args["url"]
-    fmt      = request.args["fmt"]
-    playlist = bool(int(request.args.get("playlist", 0)))
-    subs     = bool(int(request.args.get("subs",     0)))
-    sb       = bool(int(request.args.get("sb",       0)))
-    archive  = bool(int(request.args.get("archive",  0)))
+    url       = request.args["url"]
+    fmt       = request.args["fmt"]
+    playlist  = bool(int(request.args.get("playlist",  0)))
+    subs      = bool(int(request.args.get("subs",      0)))
+    sb        = bool(int(request.args.get("sb",        0)))
+    archive   = bool(int(request.args.get("archive",   0)))
+    sub_langs = request.args.get("sub_langs", "en,ar")
 
-    proc = download_stream(url, fmt, playlist, subs=subs, sponsorblock=sb, archive=archive)
+    proc = download_stream(url, fmt, playlist, subs=subs, sponsorblock=sb,
+                           archive=archive, sub_langs=sub_langs)
+    set_current_proc(proc)
 
     def generate():
         for line in proc.stdout:
@@ -84,6 +99,15 @@ def stream():
             yield "data:__DONE__\n\n"
 
     return Response(generate(), mimetype="text/event-stream")
+
+
+@bp.route("/cancel", methods=["POST"])
+def cancel():
+    with _proc_lock:
+        if _current_proc and _current_proc.poll() is None:
+            _current_proc.terminate()
+            return jsonify(success=True)
+    return jsonify(success=False)
 
 
 @bp.route("/open-file")

@@ -47,6 +47,9 @@ declare -A PLATFORM_MAP=(
   ["pinterest.com"]="Pinterest"
 )
 
+# 🧩 Platforms that support playlists
+PLAYLIST_DOMAINS=("youtube.com" "youtu.be" "soundcloud.com" "vimeo.com")
+
 # 🧩 Build domain pattern from PLATFORM_MAP keys
 domain_pattern=$(IFS="|"; keys=("${!PLATFORM_MAP[@]}"); echo "${keys[*]}")
 domain_pattern="${domain_pattern//./\\.}"
@@ -318,13 +321,14 @@ if [[ $url_count -eq 0 ]]; then
 fi
 
 echo "📥 Found $url_count URL(s) to process:"
-# List them
 for i in "${!urls[@]}"; do
   echo "  $((i+1))) ${urls[i]}"
 done
 
+url_idx=0
 for url in "${urls[@]}"; do
-  echo "🔗 Processing: $url"
+  url_idx=$((url_idx + 1))
+  echo "🔗 [$url_idx/$url_count] Processing: $url"
   # 🔄 Reset per-loop defaults
   playlist_flag="--no-playlist"
   format_flag="-f bv*+ba/b"
@@ -364,9 +368,8 @@ for url in "${urls[@]}"; do
     #    Exit status 0 means it IS a playlist. We redirect output to keep the terminal clean.
 
     # Only check for playlists on platforms that support them
-    playlist_domains=("youtube.com" "youtu.be" "soundcloud.com" "vimeo.com")
     domain_supports_playlist=false
-    for pd in "${playlist_domains[@]}"; do
+    for pd in "${PLAYLIST_DOMAINS[@]}"; do
       if [[ "$url" == *"$pd"* ]]; then
         domain_supports_playlist=true
         break
@@ -433,8 +436,8 @@ for url in "${urls[@]}"; do
     fi
 
     # 🧩 Skip also if certain domains
-    for domain in "${skip_format_domains[@]}"; do
-      if [[ "$url" == *"$domain"* ]]; then
+    for skip_d in "${skip_format_domains[@]}"; do
+      if [[ "$url" == *"$skip_d"* ]]; then
         format_prompt=false
         break
       fi
