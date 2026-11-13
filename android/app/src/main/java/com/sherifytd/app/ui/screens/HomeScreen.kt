@@ -10,34 +10,23 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.sherifytd.app.FORMATS
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     sharedUrl: String? = null,
-    onStartDownload: (url: String, fmt: String, playlist: Boolean, subs: Boolean,
+    onStartDownload: (url: String, fmtIndex: Int, playlist: Boolean, subs: Boolean,
                       sponsorblock: Boolean, archive: Boolean, subLangs: String) -> Unit,
 ) {
     var url             by remember { mutableStateOf(sharedUrl ?: "") }
-    var fmt             by remember { mutableStateOf("bv*+ba/b") }
-    var fmtLabel        by remember { mutableStateOf("Best Available") }
+    var fmtIndex        by remember { mutableIntStateOf(0) }
     var playlist        by remember { mutableStateOf(false) }
     var subs            by remember { mutableStateOf(false) }
     var sponsorblock    by remember { mutableStateOf(false) }
     var archive         by remember { mutableStateOf(false) }
     var subLangs        by remember { mutableStateOf("en,ar") }
     var fmtMenuExpanded by remember { mutableStateOf(false) }
-
-    val formats = listOf(
-        "Best Available"  to "bv*+ba/b",
-        "Music (M4A)"     to "bestaudio[ext=m4a]/bestaudio",
-        "Music (MP3)"     to "mp3",
-        "Video 360p"      to "bv*[height<=360]+ba/b[height<=360]/b",
-        "Video 480p"      to "bv*[height<=480]+ba/b[height<=480]/b",
-        "Video 720p"      to "bv*[height<=720]+ba/b[height<=720]/b",
-        "Video 1080p"     to "bv*[height<=1080]+ba/b[height<=1080]/b",
-        "Video 2160p"     to "bv*[height<=2160]+ba/b[height<=2160]/b",
-    )
 
     Scaffold(
         topBar = {
@@ -69,7 +58,7 @@ fun HomeScreen(
                 onExpandedChange = { fmtMenuExpanded = it },
             ) {
                 OutlinedTextField(
-                    value = fmtLabel,
+                    value = FORMATS[fmtIndex].label,
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Format") },
@@ -80,10 +69,10 @@ fun HomeScreen(
                     expanded = fmtMenuExpanded,
                     onDismissRequest = { fmtMenuExpanded = false },
                 ) {
-                    formats.forEach { (label, value) ->
+                    FORMATS.forEachIndexed { index, fmt ->
                         DropdownMenuItem(
-                            text = { Text(label) },
-                            onClick = { fmtLabel = label; fmt = value; fmtMenuExpanded = false },
+                            text = { Text(fmt.label) },
+                            onClick = { fmtIndex = index; fmtMenuExpanded = false },
                         )
                     }
                 }
@@ -93,7 +82,6 @@ fun HomeScreen(
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text("Options", style = MaterialTheme.typography.labelLarge,
                          modifier = Modifier.padding(bottom = 4.dp))
-
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = playlist, onCheckedChange = { playlist = it })
                         Text("Full playlist")
@@ -125,7 +113,7 @@ fun HomeScreen(
             Button(
                 onClick = {
                     if (url.isNotBlank())
-                        onStartDownload(url.trim(), fmt, playlist, subs, sponsorblock, archive, subLangs)
+                        onStartDownload(url.trim(), fmtIndex, playlist, subs, sponsorblock, archive, subLangs)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = url.isNotBlank(),
